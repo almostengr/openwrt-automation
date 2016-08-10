@@ -15,18 +15,25 @@
 # 2016-05-15 - Updated the header documentation information. Added additional 
 # logging information utilizing logic to display the appropriate status 
 # messages.
+# 2016-08-09 - Added logging function. Changed echo commands to log function.
 ################################################################################
 
-date 
 
-echo "Sending kill command..."
+function log_msg {
+	echo $(date)"|"$1
+} # end function
+
+
+log_msg "Script started." 
+
+log_msg "Sending kill command..."
 
 # kill the process
 killall dnsmasq
 
-echo "-- Sent."
+log_msg "-- Sent."
 
-echo "Confirming that DNS MASQ process is no longer running."
+log_msg "Confirming that DNS MASQ process is no longer running."
 
 # Wait to allow for the process to exit completely. 
 sleep 5
@@ -36,31 +43,31 @@ DNSRUNCNT=$(ps -w | grep "/usr/sbin/dnsmasq" | wc -l)
 
 if [ ${DNSRUNCNT} -eq 0 ]
 then
-	echo "--Confirmation successful."
+	log_msg "--Confirmation successful."
 	
-	echo "Restarting..."
+	log_msg "Restarting..."
 
 	# Start the process back up.
 	/etc/init.d/dnsmasq start
 
-	echo "Confirming that restart was successful..."
+	log_msg "Confirming that restart was successful..."
 	
 	# Delay to allow for process to start
-	sleep 2
+	sleep 3
 
 	# Confirm that the process is running. 
 	PROCESSES=$(ps -w | grep dnsmasq | wc -l)
 
 	if [ ${PROCESSES} -eq 2 ] ;
 		# Restart was successful if two processes are running.
-		echo "-- Restart completed."
+		log_msg "-- Restart completed."
 	elif [ ${PROCESSES} -lt 2 ] ;
 		# Restart was not successful if less than two processes are running.
-		echo "-- ERROR!! DNS MASQ process did not restart. Please check that the configuration changes that were made are valid."
+		log_msg "-- ERROR!! DNS MASQ process did not restart. Please check that the configuration changes that were made are valid."
 	else
 		# Cannot determine if restart was successful if more than two processes are running.
-		echo "-- ERROR!! Could not determine whether DNS MASQ successfully restarted.  Please run ps -w to make sure that the process has started."
+		log_msg "-- ERROR!! Could not determine whether DNS MASQ successfully restarted.  Please run ps -w to make sure that the process has started."
 	fi 
 fi
 
-date 
+log_msg "Script completed."

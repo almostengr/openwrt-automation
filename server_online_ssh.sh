@@ -21,7 +21,7 @@ date
 cd $HOME
 
 # SOURCE CONFIGURATION
-source $HOME/.bashrc
+# source $HOME/.bashrc
 
 ## SCRIPT MAIN ##
 
