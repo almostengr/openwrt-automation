@@ -12,62 +12,54 @@
 # Version History (date - description)
 # 2016-02-05 - Inital version
 # 2016-05-15 - Updated the header documentation information. 
+# 2016-09-20 - Added logging and updated logic and functionality. 
 ################################################################################
 
-date
-
-# SOURCE CONFIGURATION
-source $HOME/.bashrc
-
-function powerOn {
-	tail -25 $POWERLOG > $HOME/powerlog.tmp
-
-	cat $HOME/powerlog.tmp > $POWERLOG
-
-	echo "[$(date)] Power is on." >> $POWERLOG
-
-	rm $HOME/powerlog.tmp
+# Log messages 
+function log_msg { 
+	$(date)" | "$1
 }
 
-function powerRestored {
-	echo "[$(date)] Power restored." >> $POWERLOG 
-
-	# allow for modem and other devices to boot and reestabliash themselves
-	sleep 480 
+# Check to see how long the device has been running
+function check_uptime {
+	log_msg "Checking the uptime"
 	
-	# send email that power has been restored with the last lines of log file
-	tail -5 $POWERLOG | mailx -s "Power Restored" -t $NOTIFYEMAIL 	
-
-	# create ticket for further investigation
-
-	# ping each server to see if it came back online
+	UPTIME=$(uptime)
+	
+	log_msg "Done checking the uptime"
 }
 
-function searchLog {
+# If the uptime is less than one day, then the device recently rebooted
+function eval_uptime {
+	log_msg "Evaluating the uptime"
 	
-	grep "Power restored" $POWERLOG
+	cat ${UPTIME} | grep "day"
+	
 	if [ $? -eq 0 ]; then
-	        # allow for modem and other devices to boot and reestabliash themselves
-	        sleep 480
-
-		# send email that power has been restored with the last lines of log file
-	        tail -5 $POWERLOG | mailx -s "Power Restored" -t $NOTIFYEMAIL
-
-	        # create ticket for further investigation
-
-	        # ping each server to see if it came back online
+		log_msg "Device has not rebooted in last 24 hours"
+		RETURNCD=0
+	else
+		log_msg "Device has rebooted in last 24 hours"
+		RETURNCD=1
 	fi
-} 
+	
+	log_msg "Done evaluating the uptime"
+}
 
-# SCRIPT MAIN ##
+# Main function
+function main {
+	log_msg "Running script"
+	
+	check_uptime
+	
+	eval_uptime
+	
+	log_msg "Done running script"
+	
+	return ${RETURNCD}
+}
 
-if [ -z "$1" ]; then
-	powerRestored
-else
-	powerOn
-fi
-# end if string not empty
+RETURNCD=255
+UPTIME=""
 
-
-date
-
+main
