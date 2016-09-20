@@ -16,6 +16,7 @@
 # logging information utilizing logic to display the appropriate status 
 # messages.
 # 2016-08-09 - Added logging function. Changed echo commands to log function.
+# 2016-09-20 - Updated logging messages.
 ################################################################################
 
 
@@ -23,51 +24,54 @@ function log_msg {
 	echo $(date)"|"$1
 } # end function
 
+function main {
+	log_msg "Running script" 
 
-log_msg "Script started." 
+	log_msg "Sending kill command"
 
-log_msg "Sending kill command..."
+	# kill the process
+	killall dnsmasq
 
-# kill the process
-killall dnsmasq
+	log_msg "Done sending kill command"
 
-log_msg "-- Sent."
+	log_msg "Confirming that DNS MASQ process is no longer running."
 
-log_msg "Confirming that DNS MASQ process is no longer running."
+	# Wait to allow for the process to exit completely. 
+	sleep 5
 
-# Wait to allow for the process to exit completely. 
-sleep 5
+	# Check to see if the process is still running.
+	DNSRUNCNT=$(ps -w | grep "/usr/sbin/dnsmasq" | wc -l)
 
-# Check to see if the process is still running.
-DNSRUNCNT=$(ps -w | grep "/usr/sbin/dnsmasq" | wc -l)
+	if [ ${DNSRUNCNT} -eq 0 ]
+	then
+		log_msg "Done confirming that DNS MASQ process is no longer running"
+		
+		log_msg "Restarting..."
 
-if [ ${DNSRUNCNT} -eq 0 ]
-then
-	log_msg "--Confirmation successful."
-	
-	log_msg "Restarting..."
+		# Start the process back up.
+		/etc/init.d/dnsmasq start
 
-	# Start the process back up.
-	/etc/init.d/dnsmasq start
+		log_msg "Confirming that restart was successful"
+		
+		# Delay to allow for process to start
+		sleep 3
 
-	log_msg "Confirming that restart was successful..."
-	
-	# Delay to allow for process to start
-	sleep 3
+		# Confirm that the process is running. 
+		PROCESSES=$(ps -w | grep dnsmasq | wc -l)
 
-	# Confirm that the process is running. 
-	PROCESSES=$(ps -w | grep dnsmasq | wc -l)
+		if [ ${PROCESSES} -eq 2 ] ;
+			# Restart was successful if two processes are running.
+			log_msg "Done confirming that the restart was successful"
+		elif [ ${PROCESSES} -lt 2 ] ;
+			# Restart was not successful if less than two processes are running.
+			log_msg "ERROR!! DNS MASQ process did not restart. Please check that the configuration changes that were made are valid."
+		else
+			# Cannot determine if restart was successful if more than two processes are running.
+			log_msg "ERROR!! Could not determine whether DNS MASQ successfully restarted.  Please run ps -w to make sure that the process has started."
+		fi 
+	fi
 
-	if [ ${PROCESSES} -eq 2 ] ;
-		# Restart was successful if two processes are running.
-		log_msg "-- Restart completed."
-	elif [ ${PROCESSES} -lt 2 ] ;
-		# Restart was not successful if less than two processes are running.
-		log_msg "-- ERROR!! DNS MASQ process did not restart. Please check that the configuration changes that were made are valid."
-	else
-		# Cannot determine if restart was successful if more than two processes are running.
-		log_msg "-- ERROR!! Could not determine whether DNS MASQ successfully restarted.  Please run ps -w to make sure that the process has started."
-	fi 
-fi
+	log_msg "Done running script"
+}
 
-log_msg "Script completed."
+main 
